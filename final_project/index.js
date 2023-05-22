@@ -18,21 +18,22 @@ app.use(
 );
 
 app.use("/customer/auth/*", function auth(req, res, next) {
-  //Write the authenication mechanism here
-  const token = req.headers["x-access-token"];
-  if (!token)
-    return res.status(401).send({ auth: false, message: "No token provided." });
-  jwt.verify(token, "fingerprint_customer", function (err, decoded) {
-    if (err)
-      return res
-        .status(500)
-        .send({ auth: false, message: "Failed to authenticate token." });
-    req.user_id = decoded.id;
-    next();
-  });
+  if (req.session.authorization) {
+    token = req.session.authorization["accessToken"];
+    jwt.verify(token, "access", (err, user) => {
+      if (!err) {
+        req.user = user;
+        next();
+      } else {
+        return res.status(403).json({ message: "User not authenticated" });
+      }
+    });
+  } else {
+    return res.status(403).json({ message: "User not logged in" });
+  }
 });
 
-const PORT = 5000;
+const PORT = 8080;
 
 app.use("/customer", customer_routes);
 app.use("/", genl_routes);
